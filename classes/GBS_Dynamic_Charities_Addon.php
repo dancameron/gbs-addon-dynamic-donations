@@ -1,7 +1,7 @@
 <?php
 
 
-class GBS_Split_Payments_Addon {
+class GBS_Dynamic_Charities_Addon {
 	
 	public static function init() {
 
@@ -13,10 +13,16 @@ class GBS_Split_Payments_Addon {
 		require_once 'GBS_Charities.php';
 		GB_Charities::init();
 
-		// Reports
-		require_once 'GBS_Charity_Reports.php';
-		GBS_Charity_Reports::init();
-		require_once GB_CHARITY_PATH . '/library/template-tags.php';
+		// Controller
+		require_once 'GBS_Charities.php';
+		GB_Charities::init();
+
+		// Checkout
+		require_once 'GB_Charities_Checkout.php';
+		GB_Charities_Checkout::init();
+
+		// Template tags
+		require_once GB_DYN_CHARITY_PATH . '/library/template-tags.php';
 	}
 
 	public static function gb_addon( $addons ) {
