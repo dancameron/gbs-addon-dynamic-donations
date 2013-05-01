@@ -142,6 +142,17 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 				if ( $donation_id === $item['deal_id'] ) {
 					$price = $deal->get_price( NULL, $item['data'] );
+					$price_input = '<span id="'.self::CART_OPTION_NAME.'">'.gb_get_formatted_money($price).' <small class="link">edit</small></span><input type="text" id="input_'.self::CART_OPTION_NAME.'" name="'.self::CART_OPTION_NAME.'" class="input_mini cloak" value="'.$price.'" placeholder="0"/>';
+					$price_input .= '<style type="text/css">#input_'.self::CART_OPTION_NAME.' { display: none;}</style>';
+					$price_input .= '<script type="text/javascript">
+							jQuery(document).ready( function($) {
+								$("span#'.self::CART_OPTION_NAME.'").live( "click", function() {
+									$(this).remove();
+									$("#input_'.self::CART_OPTION_NAME.'").fadeIn("fast");
+								});
+							});
+						</script>';
+
 					$row = array(
 						'remove' => count($charities) == 1 ? '' : sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
 						'name' => $deal->get_title( $item['data'] ),
