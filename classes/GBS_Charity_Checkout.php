@@ -1,10 +1,6 @@
 <?php
 
 class GB_Charities_Checkout extends Group_Buying_Controller {
-	const POST_TYPE = 'gb_charities';
-	const REWRITE_SLUG = 'charities';
-	const REPORT_SLUG = 'charity';
-	const META_KEY = 'gb_purchase_charity';
 
 	public static function init() {
 		parent::init();
@@ -17,14 +13,7 @@ class GB_Charities_Checkout extends Group_Buying_Controller {
 		// Save charity record for purchase
 		add_action( 'completing_checkout', array( get_class(), 'save_charity' ), 10, 1 );
 
-		// Dynamic Entry of total based on submission
-		
-		// modify the purchase with an item 
-		
-		// 
-
 	}
-
 
 	/**
 	 * Register action hooks for displaying and processing the payment page
@@ -46,10 +35,12 @@ class GB_Charities_Checkout extends Group_Buying_Controller {
 
 	public static function display_payment_page( $panes, $checkout ) {
 		$charities = GB_Charity::get_charities();
-		$panes['charity'] = array(
-			'weight' => 100,
-			'body' => self::_load_view_to_string( 'checkout/charities', array( 'charity_ids' => $charities ) ),
-		);
+		if ( !empty( $charities ) ) {
+			$panes['charity'] = array(
+				'weight' => 100,
+				'body' => self::_load_view_to_string( 'checkout/charities', array( 'charity_ids' => $charities ) ),
+			);
+		}
 		return $panes;
 	}
 
@@ -87,11 +78,21 @@ class GB_Charities_Checkout extends Group_Buying_Controller {
 		return $panes;
 	}
 
+	public static function save_charity( $checkout ) {
+		if ( $checkout->cache['gb_charity'] && $checkout->cache['purchase_id'] ) {
+			$purchase = Group_Buying_Purchase::get_instance( $checkout->cache['purchase_id'] );
+			GB_Charities::set_purchase_charity( $purchase, $checkout->cache['gb_charity'] );
+		}
+	}
+
+
 
 	private static function _load_view_to_string( $path, $args ) {
 		ob_start();
 		if ( !empty( $args ) ) extract( $args );
-		@include GB_DYN_CHARITY_PATH . '/views/' . $path . '.php';
+		// Check if there's a template specific file
+		$file = ( file_exists( GB_DYN_CHARITY_PATH . '/views/' . GBS_THEME_SLUG . '/' . $path . '.php' ) ) ? GB_DYN_CHARITY_PATH . '/views/' . GBS_THEME_SLUG . '/' . $path . '.php' : GB_DYN_CHARITY_PATH . '/views/prime_theme/' . $path . '.php' ;
+		@include $file;
 		return ob_get_clean();
 	}
 

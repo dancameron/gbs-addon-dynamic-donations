@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: GBS Split Donation Payments
+Plugin Name: Dynamic Donations
 Version: 1
 Plugin URI: http://groupbuyingsite.com/marketplace
 Description: Splits up payments between a charity and the site.

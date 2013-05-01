@@ -30,7 +30,10 @@ class GBS_Charity_Reports extends Group_Buying_Controller {
 
 	public function add_navigation( $view ) {
 		if ( $_GET['report'] == self::REPORT_SLUG ) {
-			return GB_CHARITY_PATH . '/views/report/view.php';
+			$path = 'report/view';
+			$file = ( file_exists( GB_DYN_CHARITY_PATH . '/views/' . GBS_THEME_SLUG . '/' . $path . '.php' ) ) ? GB_DYN_CHARITY_PATH . '/views/' . GBS_THEME_SLUG . '/' . $path . '.php' : GB_DYN_CHARITY_PATH . '/views/prime_theme/' . $path . '.php' ;
+			error_log( "file: " . print_r( $file, true ) );
+			return $file;
 		}
 		return $view;
 	}
@@ -40,6 +43,7 @@ class GBS_Charity_Reports extends Group_Buying_Controller {
 		if ( $report->report != self::REPORT_SLUG || ( !isset( $_GET['id'] ) || $_GET['id'] == '' ) ) {
 			return;
 		}
+		global $gb_report_pages;
 		$report->csv_available = TRUE;
 
 		$columns =
@@ -59,54 +63,63 @@ class GBS_Charity_Reports extends Group_Buying_Controller {
 		);
 		$report->columns = $columns;
 		$purchases = GB_Charities::get_purchase_by_charity( $_GET['id'] );
+
+		// Pagination
+		$pages = array_chunk( $purchases, apply_filters( 'gb_reports_show_records', 100, 'custom_report' ) ); // chunk the purchase array into 100 increments
+		$gb_report_pages = count( $pages ); // set the global for later pagination
+		$showpage = (int)$_GET['showpage'];
+
+		$i = 1; // To count the voucher quantity
 		$purchase_array = array();
-		foreach ( $purchases as $purchase_id ) {
-			$purchase = Group_Buying_Purchase::get_instance( $purchase_id );
-			$user_id = $purchase->get_user();
-			$deals = $purchase->get_products();
-			foreach ( $deals as $deal => $key ) {
-				$deal = Group_Buying_Deal::get_instance( $key['deal_id'] );
-				if ( is_a( $deal, 'Group_Buying_Deal' ) ) {
-					if ( TRUE != $deal->never_expires() ) {
-						$exp = date( 'F j\, Y H:i:s', $deal->get_expiration_date() );
-					} else {
-						$exp = self::__( 'N/A' );
+		if ( !empty( $pages ) ) {
+			foreach ( $pages[$showpage] as $purchase_id ) {
+				$purchase = Group_Buying_Purchase::get_instance( $purchase_id );
+				$user_id = $purchase->get_user();
+				$deals = $purchase->get_products();
+				foreach ( $deals as $deal => $key ) {
+					$deal = Group_Buying_Deal::get_instance( $key['deal_id'] );
+					if ( is_a( $deal, 'Group_Buying_Deal' ) ) {
+						if ( TRUE != $deal->never_expires() ) {
+							$exp = date( 'F j\, Y H:i:s', $deal->get_expiration_date() );
+						} else {
+							$exp = self::__( 'N/A' );
+						}
+						if ( gb_has_merchant( $deal->get_ID() ) ) {
+							$merchant = &get_post( gb_get_merchant_id( $deal->get_ID() ) );
+							$merchant_title = isset( $merchant->post_title ) ? $merchant->post_title : '';
+						} else {
+							$merchant_title = self::__( 'N/A' );
+						}
+						$locations = gb_get_deal_locations( $deal->get_ID() );
+						$location_array = array();
+						foreach ( $locations as $location ) {
+							$location_array[] = $location->name;
+						}
+						$cats = gb_get_deal_categories( $deal->get_ID() );
+						$cats_array = array();
+						foreach ( $cats as $cat ) {
+							$cats_array[] = $cat->name;
+						}
+						$tags = gb_get_deal_tags( $deal->get_ID() );
+						$tags_array = array();
+						foreach ( $tags as $tag ) {
+							$tags_array[] = $tag->name;
+						}
+						$purchase_array[] = array(
+							'id' => $purchase_id,
+							'deal' => get_the_title( $deal->get_ID() ),
+							'merch_name' => $merchant_title,
+							'exp' => $exp,
+							'date' => date( 'F j\, Y H:i:s', get_the_time( 'U', $purchase_id ) ),
+							'name' => gb_get_name( $user_id ),
+							'quantity' => $key['quantity'],
+							'price' => gb_get_formatted_money( $key['price'] ),
+							'total' => gb_get_formatted_money( $purchase->get_total() ),
+							'locations' => implode( ',', $location_array ),
+							'tags' => implode( ',', $tags_array ),
+							'cats' => implode( ',', $cats_array )
+						);
 					}
-					if ( gb_has_merchant( $deal->get_ID() ) ) {
-						$merchant = &get_post( gb_get_merchant_id( $deal->get_ID() ) );
-						$merchant_title = isset( $merchant->post_title ) ? $merchant->post_title : '';
-					} else {
-						$merchant_title = self::__( 'N/A' );
-					}
-					$locations = gb_get_deal_locations( $deal->get_ID() );
-					$location_array = array();
-					foreach ( $locations as $location ) {
-						$location_array[] = $location->name;
-					}
-					$cats = gb_get_deal_categories( $deal->get_ID() );
-					$cats_array = array();
-					foreach ( $cats as $cat ) {
-						$cats_array[] = $cat->name;
-					}
-					$tags = gb_get_deal_tags( $deal->get_ID() );
-					$tags_array = array();
-					foreach ( $tags as $tag ) {
-						$tags_array[] = $tag->name;
-					}
-					$purchase_array[] = array(
-						'id' => $purchase_id,
-						'deal' => get_the_title( $deal->get_ID() ),
-						'merch_name' => $merchant_title,
-						'exp' => $exp,
-						'date' => date( 'F j\, Y H:i:s', get_the_time( 'U', $purchase_id ) ),
-						'name' => gb_get_name( $user_id ),
-						'quantity' => $key['quantity'],
-						'price' => gb_get_formatted_money( $key['price'] ),
-						'total' => gb_get_formatted_money( $purchase->get_total() ),
-						'locations' => implode( ',', $location_array ),
-						'tags' => implode( ',', $tags_array ),
-						'cats' => implode( ',', $cats_array )
-					);
 				}
 			}
 		}
@@ -195,10 +208,11 @@ class GBS_Charity_Reports extends Group_Buying_Controller {
 		foreach ( $array as $records ) {
 			$items = array();
 			$purchase = Group_Buying_Purchase::get_instance( $records['id'] );
-			$charity_id = GB_Charities::get_purchase_charity_id( $purchase );
-			if ( $charity_id ) {
-				$charity = array( 'charity' => get_the_title( $charity_id ) );
-			} else {
+			if ( is_a( $purchase, 'Group_Buying_Purchase' ) ) {
+				$charity_id = GB_Charities::get_purchase_charity_id( $purchase );
+				$charity = ( !$charity_id ) ? array() : array( 'charity' => get_the_title( $charity_id ) );
+			}
+			if ( empty( $charity ) ) {
 				$charity = array( 'charity' => self::__( 'N/A' ) );
 			}
 			$new_array[] = array_merge( $records, $charity );
