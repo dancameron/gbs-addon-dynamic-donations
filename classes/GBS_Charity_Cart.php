@@ -20,6 +20,10 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 		// modify the line items
 		add_filter( 'gb_cart_items', array( get_class(), 'line_items' ), 10, 2 );
+
+		// Remove the charity selection pane
+		self::deregister_payment_pane();
+		self::deregister_review_pane();
 		
 
 	}
