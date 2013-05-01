@@ -5,11 +5,16 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	const CART_META_DONATION = 'gb_donation_total';
 	const PURCHASE_META_KEY = 'gb_donation_total';
 	const ITEM_DATA_KEY = 'gb_donation_total';
+	const DEFAULT_PERCENTAGE = 5;
 
 	public static function init() {
+
+		// force the donation item in the cart
+		add_action( 'gb_processing_cart', array( get_class(), 'force_donation_to_cart' ), 10, 1 );
+
 		// Add item to the cart based on amount
-		add_action( 'gb_processing_cart', array( get_class(), 'add_donation_to_cart' ), 10, 1 );
-		add_action( 'gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'add_donation_to_cart_on_checkout' ), 0, 1 );
+		add_action( 'gb_processing_cart', array( get_class(), 'maybe_add_donation_to_cart' ), 10, 1 );
+		add_action( 'gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'maybe_add_donation_to_cart_on_checkout' ), 0, 1 );
 
 		// Filter the price based on the purchase 
 		add_filter( 'gb_get_deal_price_meta', array( get_class(), 'filter_deal_price' ), 10, 4 );
@@ -28,28 +33,49 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 	}
 
-	public static function add_donation_to_cart( Group_Buying_Cart $cart ) {
-		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
-			$data = array(
-					Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $_POST['gb_charity'] ),
-					self::ITEM_DATA_KEY => $_POST[self::CART_OPTION_NAME]
-				);
-			$cart->remove_item( GB_Charities::get_donation_id() );
-			$cart->add_item( GB_Charities::get_donation_id(), 1, $data );
-			
+	public static function force_donation_to_cart( Group_Buying_Cart $cart ) {
+		// check to make sure a post of a new charity donation isn't being sent (prevent dups)
+		if ( !isset( $_POST['gb_charity'] ) && !isset( $_POST[self::CART_OPTION_NAME] ) ) {
+			// make sure the cart doesn't already have a discount and there's a default discount percentage set.
+			if ( !self::cart_has_donation( $cart ) && self::DEFAULT_PERCENTAGE ) {
+				// only do this if there's a single charity for the site.
+				$charities = GB_Charity::get_charities();
+				if ( count( $charities ) == 1 ) { // TODO
+					// calculate the donation
+					$default_donation = ( self::DEFAULT_PERCENTAGE ) ? $cart->get_subtotal()*(self::DEFAULT_PERCENTAGE*0.01) : 0 ;
+					// if a free cart don't add a donation
+					if ( $default_donation ) {
+						error_log( "adding a new item: " . print_r( TRUE, true ) );
+						self::add_donation_item_to_cart( $charities[0], $default_donation, $cart );
+					}
+				}
+			}
 		}
 	}
 
-	public static function add_donation_to_cart_on_checkout( Group_Buying_Checkouts $checkout ) {
-		$cart = Group_Buying_Cart::get_instance();
+	public static function maybe_add_donation_to_cart( Group_Buying_Cart $cart ) {
 		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
-			$data = array(
-					Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $_POST['gb_charity'] ),
-					self::ITEM_DATA_KEY => $_POST[self::CART_OPTION_NAME]
-				);
-			$cart->remove_item( GB_Charities::get_donation_id() );
-			$cart->add_item( GB_Charities::get_donation_id(), 1, $data );
+			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME], $cart );
 		}
+	}
+
+	public static function maybe_add_donation_to_cart_on_checkout( Group_Buying_Checkouts $checkout ) {
+		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
+			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME] );
+		}
+	}
+
+	public function add_donation_item_to_cart( $charity_id, $donation_total, $cart = 0 ) {
+		if ( !$cart ) {
+			$cart = Group_Buying_Cart::get_instance();
+		}
+		$item_id = GB_Charities::get_donation_id();
+		$data = array(
+				Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $charity_id ),
+				self::ITEM_DATA_KEY => $donation_total
+			);
+		$cart->remove_item( $item_id );
+		$cart->add_item( $item_id, 1, $data );
 	}
 
 	public static function filter_deal_title( $title, $data ) {
@@ -75,7 +101,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 	public static function filter_deal_price( $price, Group_Buying_Deal $deal, $qty, $data ) {
 		if ( isset( $data[self::ITEM_DATA_KEY] ) ) {
-			return (int)$data[self::ITEM_DATA_KEY]; // isn't an attribute
+			return $data[self::ITEM_DATA_KEY]; // isn't an attribute
 		}
 		return $price;
 	}
