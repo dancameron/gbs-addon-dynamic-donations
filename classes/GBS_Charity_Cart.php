@@ -127,11 +127,10 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 				$select_list .= '<option value="'.$charity_id.'">'.get_the_title( $charity_id ).'</option>';
 			}
 			$select_list .= '</select>';
-
 			$row = array(
-				'remove' => sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
+				'remove' => sprintf( '', $key ),
 				'name' => gb__('Donate to:') . $select_list,
-				'quantity' => 1,
+				'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
 				'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" placeholder="0"/>'
 			);
 			$items[] = $row;
@@ -144,10 +143,10 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 				if ( $donation_id === $item['deal_id'] ) {
 					$price = $deal->get_price( NULL, $item['data'] );
 					$row = array(
-						'remove' => sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
+						'remove' => count($charities) == 1 ? '' : sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
 						'name' => $deal->get_title( $item['data'] ),
-						'quantity' => 1,
-						'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" value="'.$price.'" placeholder="0"/>'
+						'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
+						'price' => $price_input
 					);
 					if ( $static ) {
 						unset( $row['remove'] );
