@@ -293,4 +293,9 @@ class GB_Charities extends Group_Buying_Controller {
 		$attribute_id = get_post_meta( $charity_id, self::ATTRIBUTE_ASSOCIATION_META_KEY, TRUE );
 		return $attribute_id;
 	}
+
+	public function get_charity_id_by_attribute_id( $attribute_id ) {
+		$charity_id = get_post_meta( $attribute_id, '_sku', TRUE );
+		return $charity_id;
+	}
 }
