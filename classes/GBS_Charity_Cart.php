@@ -114,7 +114,10 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	 */
 	public static function line_items( $items, Group_Buying_Cart $cart ) {
 		$donation_id = GB_Charities::get_donation_id();
-
+		$charities = GB_Charity::get_charities();
+		if ( empty( $charities ) ) {
+			return $items;
+		}
 
 		if ( !self::cart_has_donation( $cart ) && !$static ) {
 			$charities = GB_Charity::get_charities();
