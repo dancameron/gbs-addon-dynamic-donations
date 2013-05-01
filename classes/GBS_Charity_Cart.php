@@ -14,11 +14,6 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		// Save donation
 		add_action('gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'process_payment_page'), 19, 1);
 
-		// Cart Display
-		//add_filter('gb_cart_extras', array( get_class(), 'cart_donation') );
-		//add_filter('gb_cart_line_items', array( get_class(), 'line_items' ), 10, 2 );
-		//add_filter('gb_cart_get_total', array( get_class(), 'cart_total' ), 10, 2 );
-
 	}
 
 	public static function add_donation_to_cart( Group_Buying_Checkouts $checkout ) {
@@ -34,40 +29,6 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			$donation = ( $_POST[self::CART_OPTION_NAME] > 0 ) ? $_POST[self::CART_OPTION_NAME] : 0;
 			$checkout->cache[self::CART_META_DONATION] = $donation;
 		}
-	}
-	
-	public static function line_items( $line_items, Group_Buying_Cart $cart ) {
-		$value = ( self::get_cart_donation_total() ) ? self::get_cart_donation_total() : '' ;
-		if ( gb_on_checkout_page() && gb_get_current_checkout_page() === Group_Buying_Checkouts::PAYMENT_PAGE ) {
-			$donation_row = array(
-				'donation' => array(
-					'label' => gb__('Donation Amount (select charity below)'),
-					'data' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" value="'.$value.'" placeholder="0"/>',
-					'weight' => 25,
-				),
-			);
-		}
-		elseif ( gb_on_checkout_page() ) {
-			$donation_row = array(
-				'donation' => array(
-					'label' => gb__('Donation Amount'),
-					'data' => gb_get_formatted_money($value),
-					'weight' => 25,
-				),
-			);
-		}
-		if ( is_array( $donation_row ) ) {
-			$line_items = array_merge($donation_row,$line_items);
-		}
-		return $line_items;
-	}
-	
-	public static function cart_total( $total, Group_Buying_Cart $cart ) {
-		$donation = self::get_cart_donation_total();
-		if ( $donation ) {
-			$total = $total+$donation;
-		}
-		return $total;
 	}
 
 	///////////////
