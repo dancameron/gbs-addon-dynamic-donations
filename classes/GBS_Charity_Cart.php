@@ -156,7 +156,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 					$row = array(
 						'remove' => count($charities) == 1 ? '' : sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
 						'name' => $deal->get_title( $item['data'] ),
-						'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
+						'quantity' => 1,
 						'price' => $price_input
 					);
 					if ( $static ) {
