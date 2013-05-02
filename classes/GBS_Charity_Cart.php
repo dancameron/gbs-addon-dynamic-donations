@@ -45,7 +45,6 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 					$default_donation = ( self::DEFAULT_PERCENTAGE ) ? $cart->get_subtotal()*(self::DEFAULT_PERCENTAGE*0.01) : 0 ;
 					// if a free cart don't add a donation
 					if ( $default_donation ) {
-						error_log( "adding a new item: " . print_r( TRUE, true ) );
 						self::add_donation_item_to_cart( $charities[0], $default_donation, $cart );
 					}
 				}
@@ -55,6 +54,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 	public static function maybe_add_donation_to_cart( Group_Buying_Cart $cart ) {
 		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
+
 			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME], $cart );
 		}
 	}
@@ -128,7 +128,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			}
 			$select_list .= '</select>';
 			$row = array(
-				'remove' => sprintf( '', $key ),
+				'remove' => '',
 				'name' => gb__('Donate to:') . $select_list,
 				'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
 				'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" placeholder="0"/>'
@@ -154,9 +154,9 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 						</script>';
 
 					$row = array(
-						'remove' => count($charities) == 1 ? '' : sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
+						'remove' => sprintf( '', $key ),
 						'name' => $deal->get_title( $item['data'] ),
-						'quantity' => 1,
+						'quantity' => $static ? $item['quantity']: gb_get_quantity_select( '1', 1, 1, 'items['.$key.'][qty]' ),
 						'price' => $price_input
 					);
 					if ( $static ) {
@@ -164,8 +164,6 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 						$row['price'] = gb_get_formatted_money( $price );
 					} else {
 						$row['name'] .= sprintf( '<input type="hidden" value="%s" name="gb_charity" />', self::get_charity_id_from_data( $item['data'] ) );
-						$row['name'] .= sprintf( '<input type="hidden" value="%s" name="items[%d][id]" />', $item['deal_id'], $key );
-						$row['name'] .= sprintf( '<input type="hidden" value="%s" name="items[%d][data]" />', $item['data']?esc_attr( serialize( $item['data'] ) ):'', $key );
 					}
 					$items[] = $row;
 				}
