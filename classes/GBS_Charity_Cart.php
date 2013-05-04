@@ -34,13 +34,21 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	}
 
 	public static function force_donation_to_cart( Group_Buying_Cart $cart ) {
+		self::remove_donation_item_to_cart( $cart );
+		
+		if ( $cart->get_subtotal() < 0.01 ) {
+			self::remove_donation_item_to_cart( $cart );
+			return;
+		}
+
 		// check to make sure a post of a new charity donation isn't being sent (prevent dups)
 		if ( !isset( $_POST['gb_charity'] ) && !isset( $_POST[self::CART_OPTION_NAME] ) ) {
 			// make sure the cart doesn't already have a discount and there's a default discount percentage set.
 			if ( !self::cart_has_donation( $cart ) && self::DEFAULT_PERCENTAGE ) {
 				// only do this if there's a single charity for the site.
 				$charities = GB_Charity::get_charities();
-				if ( count( $charities ) == 1 ) { // TODO
+				if ( count( $charities ) > 1 ) {
+					self::remove_donation_item_to_cart( $cart ); // remove item before the total is calculated
 					// calculate the donation
 					$default_donation = ( self::DEFAULT_PERCENTAGE ) ? $cart->get_subtotal()*(self::DEFAULT_PERCENTAGE*0.01) : 0 ;
 					// if a free cart don't add a donation
@@ -53,14 +61,14 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	}
 
 	public static function maybe_add_donation_to_cart( Group_Buying_Cart $cart ) {
-		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
+		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) && $_POST['gb_charity'] != '' && $_POST[self::CART_OPTION_NAME] != '' ) {
 
 			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME], $cart );
 		}
 	}
 
 	public static function maybe_add_donation_to_cart_on_checkout( Group_Buying_Checkouts $checkout ) {
-		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
+		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) && $_POST['gb_charity'] != '' && $_POST[self::CART_OPTION_NAME] != '' ) {
 			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME] );
 		}
 	}
@@ -74,8 +82,18 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 				Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $charity_id ),
 				self::ITEM_DATA_KEY => $donation_total
 			);
-		$cart->remove_item( $item_id );
+		self::remove_donation_item_to_cart( $cart, $item_id );
 		$cart->add_item( $item_id, 1, $data );
+	}
+
+	public function remove_donation_item_to_cart( $cart = 0, $item_id = 0 ) {
+		if ( !$cart ) {
+			$cart = Group_Buying_Cart::get_instance();
+		}
+		if ( !$item_id ) {
+			$item_id = GB_Charities::get_donation_id();
+		}
+		$cart->remove_item( $item_id );
 	}
 
 	public static function filter_deal_title( $title, $data ) {
@@ -118,7 +136,6 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		if ( empty( $charities ) ) {
 			return $items;
 		}
-
 		if ( !self::cart_has_donation( $cart ) && !$static ) {
 			$charities = GB_Charity::get_charities();
 			$select_list = '<br/><select name="gb_charity" id="gb_charity">';
@@ -141,6 +158,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			foreach ( $cart->get_items() as $key => $item ) {
 
 				if ( $donation_id === $item['deal_id'] ) {
+					$deal = Group_Buying_Deal::get_instance( $item['deal_id'] );
 					$price = $deal->get_price( NULL, $item['data'] );
 					$price_input = '<span id="'.self::CART_OPTION_NAME.'">'.gb_get_formatted_money($price).' <small class="link">edit</small></span><input type="text" id="input_'.self::CART_OPTION_NAME.'" name="'.self::CART_OPTION_NAME.'" class="input_mini cloak" value="'.$price.'" placeholder="0"/>';
 					$price_input .= '<style type="text/css">#input_'.self::CART_OPTION_NAME.' { display: none;}</style>';
@@ -202,7 +220,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		$donation_id = GB_Charities::get_donation_id();
 		foreach ( $cart->get_items() as $key => $item ) {
 			if ( $donation_id === $item['deal_id'] ) {
-				return TRUE;
+				return $item['data'][self::ITEM_DATA_KEY];
 			}
 		}
 		return FALSE;
