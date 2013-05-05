@@ -147,7 +147,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			$row = array(
 				'remove' => '',
 				'name' => gb__('Donate to:') . $select_list,
-				'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
+				//'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
 				'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" placeholder="0"/>'
 			);
 			$items[] = $row;
@@ -174,7 +174,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 					$row = array(
 						'remove' => sprintf( '', $key ),
 						'name' => $deal->get_title( $item['data'] ),
-						'quantity' => $static ? $item['quantity']: gb_get_quantity_select( '1', 1, 1, 'items['.$key.'][qty]' ),
+						// 'quantity' => $static ? $item['quantity']: gb_get_quantity_select( '1', 1, 1, 'items['.$key.'][qty]' ),
 						'price' => $price_input
 					);
 					if ( $static ) {
