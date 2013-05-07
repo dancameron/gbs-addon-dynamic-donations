@@ -63,13 +63,13 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	public static function maybe_add_donation_to_cart( Group_Buying_Cart $cart ) {
 		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) && $_POST['gb_charity'] != '' && $_POST[self::CART_OPTION_NAME] != '' ) {
 
-			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME], $cart );
+			self::add_donation_item_to_cart( (int) $_POST['gb_charity'], (float) $_POST[self::CART_OPTION_NAME], $cart );
 		}
 	}
 
 	public static function maybe_add_donation_to_cart_on_checkout( Group_Buying_Checkouts $checkout ) {
 		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) && $_POST['gb_charity'] != '' && $_POST[self::CART_OPTION_NAME] != '' ) {
-			self::add_donation_item_to_cart( $_POST['gb_charity'], $_POST[self::CART_OPTION_NAME] );
+			self::add_donation_item_to_cart( (int) $_POST['gb_charity'], (float) $_POST[self::CART_OPTION_NAME] );
 		}
 	}
 
