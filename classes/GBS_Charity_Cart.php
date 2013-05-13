@@ -26,6 +26,9 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		// modify the line items
 		add_filter( 'gb_cart_items', array( get_class(), 'line_items' ), 10, 2 );
 
+		// Filter items to capture
+		add_filter( 'gb_pp_items_to_capture', array( get_class(), 'maybe_remove_donation_item' ), 10, 3 );
+
 		// Remove the charity selection pane
 		self::deregister_payment_pane();
 		self::deregister_review_pane();
@@ -102,7 +105,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		}
 		$attribute_id = $data[Group_Buying_Attribute::ATTRIBUTE_DATA_KEY];
 		$charity_id = GB_Charities::get_charity_id_by_attribute_id( $attribute_id );
-		$title = 'Donation to ' . get_the_title( $charity_id ) . ' (' . gb_get_excerpt_char_truncation( 50, $charity_id  ) . ')';
+		$title = 'Donation to ' . get_the_title( $charity_id ) . ' (' . gb_get_excerpt_char_truncation( 100, $charity_id  ) . ')';
 
 		return $title;
 	}
@@ -224,6 +227,34 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			}
 		}
 		return FALSE;
+	}
+
+	/**
+	 * Don't allow for the donation item to be captured before any other item
+	 * @param  array $items_to_capture 
+	 * @param  object $processor        
+	 * @param  object $payment          
+	 * @return array                   
+	 */
+	public function maybe_remove_donation_item( $items_to_capture, $processor, $payment  ) {
+		$has_donation = FALSE;
+		$donation_item_id = GB_Charities::get_donation_id();
+		// Check if there's a donation item in the array of items to be captured.
+		foreach ( $items_to_capture as $item_id => $price ) {
+			if ( $item_id == $donation_item_id ) {
+				$has_donation = TRUE;
+			}
+		}
+		if ( $has_donation ) { // array has the donation item included.
+			$payment_data = $payment->get_data();
+			// Check to make sure the donation is the last uncaptured item.
+			if ( isset( $payment_data['uncaptured_deals'] ) && ( count( $payment_data['uncaptured_deals'] ) > 1 ) ) {
+				// remove the donation item from being captured since there are other items included.
+				unset( $items_to_capture[ $donation_item_id ] );
+			}
+				
+		}
+		return $items_to_capture;
 	}
 
 	private static function deregister_payment_pane() {
