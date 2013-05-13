@@ -50,7 +50,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			if ( !self::cart_has_donation( $cart ) && self::DEFAULT_PERCENTAGE ) {
 				// only do this if there's a single charity for the site.
 				$charities = GB_Charity::get_charities();
-				if ( count( $charities ) > 1 ) {
+				if ( count( $charities ) == 1 ) {
 					self::remove_donation_item_to_cart( $cart ); // remove item before the total is calculated
 					// calculate the donation
 					$default_donation = ( self::DEFAULT_PERCENTAGE ) ? $cart->get_subtotal()*(self::DEFAULT_PERCENTAGE*0.01) : 0 ;

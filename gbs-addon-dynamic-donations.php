@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: Dynamic Donations
-Version: 1.2
+Version: 1.3
 Plugin URI: http://groupbuyingsite.com/marketplace
-Description: Splits up payments between a charity and the site.
+Description: Adds a dynamic charity selection to the checkout for customers with the ability for charity templates. Allow the customer to select how much their donation should be by adding an item to their cart; removes the selection area added with the basic dynamic charities above.
 Plugin URI: http://groupbuyingsite.com/marketplace/
 Author: Sprout Venture
 Author URI: http://sproutventure.com/
