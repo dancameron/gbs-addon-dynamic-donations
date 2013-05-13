@@ -8,7 +8,9 @@ class GB_Charities_Checkout extends Group_Buying_Controller {
 		// Checkout panes
 		self::register_payment_pane();
 		self::register_review_pane();
-		//self::register_confirmation_pane();
+		
+		// Process payment page
+		add_action( 'gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'process_payment_page' ), 5, 1 );
 
 		// Save charity record for purchase
 		add_action( 'completing_checkout', array( get_class(), 'save_charity' ), 10, 1 );
@@ -22,7 +24,6 @@ class GB_Charities_Checkout extends Group_Buying_Controller {
 	 */
 	private static function register_payment_pane() {
 		add_filter( 'gb_checkout_panes_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'display_payment_page' ), 10, 2 );
-		add_action( 'gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'process_payment_page' ), 10, 1 );
 	}
 
 	private static function register_review_pane() {
