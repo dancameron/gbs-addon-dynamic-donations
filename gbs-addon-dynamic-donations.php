@@ -17,8 +17,8 @@ define ('GB_DYN_CHARITY_URL', plugins_url( '', __FILE__) );
 define( 'GB_DYN_CHARITY_PATH', WP_PLUGIN_DIR . '/' . basename( dirname( __FILE__ ) ) );
 
 // Load after all other plugins since we need to be compatible with groupbuyingsite
-add_action( 'plugins_loaded', 'gb_load_bundles' );
-function gb_load_bundles() {
+add_action( 'plugins_loaded', 'gb_load_dyn_donations' );
+function gb_load_dyn_donations() {
 	$gbs_min_version = '4.3';
 	if ( class_exists( 'Group_Buying_Controller' ) && version_compare( Group_Buying::GB_VERSION, $gbs_min_version, '>=' ) ) {
 		require_once 'classes/GBS_Dynamic_Charities_Addon.php';
