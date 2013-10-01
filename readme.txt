@@ -21,6 +21,7 @@ A new deal/project/item is created after activation, saving it in step 4 allows 
 
 Release Notes
 -------------
+1.4 - Delete Voucher after creation
 1.3 - Initial Release
 1.2.5 - Don't capture donation until all other items have been captured first.
 1.1 - Force donation with percentage.

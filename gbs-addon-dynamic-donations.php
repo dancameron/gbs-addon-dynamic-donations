@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Dynamic Donations
-Version: 1.3
+Version: 1.3.9
 Plugin URI: http://groupbuyingsite.com/marketplace
 Description: Adds a dynamic charity selection to the checkout for customers with the ability for charity templates. Allow the customer to select how much their donation should be by adding an item to their cart; removes the selection area added with the basic dynamic charities above.
 Plugin URI: http://groupbuyingsite.com/marketplace/
@@ -12,6 +12,7 @@ Plugin Author URI: http://sproutventure.com/
 Contributors: Dan Cameron
 Text Domain: group-buying
 */
+
 
 define ('GB_DYN_CHARITY_URL', plugins_url( '', __FILE__) );
 define( 'GB_DYN_CHARITY_PATH', WP_PLUGIN_DIR . '/' . basename( dirname( __FILE__ ) ) );
