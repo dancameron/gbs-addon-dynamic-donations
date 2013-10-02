@@ -4,7 +4,7 @@ class GBS_Charity_Vouchers extends Group_Buying_Controller {
 	
 
 	public static function init() {
-		add_action( 'create_voucher_for_purchase', 'maybe_delete_charity_voucher' );
+		add_action( 'create_voucher_for_purchase', array( get_class(), 'maybe_delete_charity_voucher' ), 10, 3 );
 	}
 
 	/**
