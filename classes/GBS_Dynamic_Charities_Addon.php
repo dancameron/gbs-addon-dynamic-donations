@@ -38,7 +38,10 @@ class GBS_Dynamic_Charities_Addon {
 			'files' => array(),
 			'callbacks' => array(
 				array( __CLASS__, 'init' ),
-			)
+			),
+			'url' => 'http://groupbuyingsite.com/marketplace/dynamic-charity-contributions/',
+			'support_url' => 'http://groupbuyingsite.com/forum/forumdisplay.php?65-Simple-Charities'
+
 		);
 		$addons['dyn_charities_purchase'] = array(
 			'label' => gb__( 'Dynamic Charities: Donation Purchase' ),
@@ -46,7 +49,9 @@ class GBS_Dynamic_Charities_Addon {
 			'files' => array(),
 			'callbacks' => array(
 				array( __CLASS__, 'init_purchase' ),
-			)
+			),
+			'url' => 'http://groupbuyingsite.com/marketplace/dynamic-charity-contributions/',
+			'support_url' => 'http://groupbuyingsite.com/forum/forumdisplay.php?65-Simple-Charities'
 		);
 		return $addons;
 	}
