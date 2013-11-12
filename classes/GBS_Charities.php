@@ -11,6 +11,14 @@ class GB_Charities extends Group_Buying_Controller {
 	public static function init() {
 		parent::init();
 
+		$enabled_addons = get_option( Group_Buying_Addons::ADDONS_SETTING, array() );
+		if ( empty( $enabled_addons['attributes'] ) ) {
+			if ( is_admin() ) {
+				add_action( 'admin_init', array( __CLASS__, 'show_activation_error' ) );
+			}
+			return;
+		}
+
 		// admin
 		if ( is_admin() ) {
 			add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_box' ), 10, 0 );
@@ -22,8 +30,14 @@ class GB_Charities extends Group_Buying_Controller {
 
 		add_filter( 'template_include', array( get_class(), 'override_template' ) );
 
-
 	}
+
+	public static function show_activation_error() {
+		if ( function_exists( 'add_settings_error' ) ) {
+			add_settings_error( Group_Buying_Addons::ADDONS_SETTING, 'addon_required', gb__( 'The "Deal Attributes" add-on must be enabled for proper functioning of the Dynamic Donations.' ) );
+		}
+	}
+
 	public function set_purchase_charity( Group_Buying_Purchase $purchase, $charity_id ) {
 		$purchase->save_post_meta( array(
 				self::META_KEY => $charity_id,
