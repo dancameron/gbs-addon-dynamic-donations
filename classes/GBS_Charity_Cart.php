@@ -24,7 +24,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		add_filter( 'gb_deal_title', array( get_class(), 'filter_deal_title' ), 20, 2 );
 
 		// modify the line items
-		add_filter( 'gb_cart_items', array( get_class(), 'line_items' ), 10, 2 );
+		add_filter( 'gb_cart_items', array( get_class(), 'line_items' ), 10, 3 );
 
 		// Filter items to capture
 		add_filter( 'gb_pp_items_to_capture', array( get_class(), 'maybe_remove_donation_item' ), 10, 3 );
@@ -133,7 +133,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	 * @param  Group_Buying_Cart $cart  
 	 * @return                    
 	 */
-	public static function line_items( $items, Group_Buying_Cart $cart ) {
+	public static function line_items( $items, Group_Buying_Cart $cart, $static = FALSE ) {
 		$donation_id = GB_Charities::get_donation_id();
 		$charities = GB_Charity::get_charities();
 		if ( empty( $charities ) ) {

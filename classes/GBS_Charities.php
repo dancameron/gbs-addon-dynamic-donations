@@ -213,19 +213,23 @@ class GB_Charities extends Group_Buying_Controller {
 		return $where;
 	}
 
-	public function maybe_create_donation_deal() {
+	public function maybe_create_donation_deal( $force = FALSE ) {
 		$donation_deal = get_option( self::DONATION_ITEM_ID, FALSE );
-		if ( !$donation_deal ) {
+		if ( !$donation_deal || $force ) {
 			$item_id = wp_insert_post( array(
 					'post_status' => 'private',
 					'post_type' => Group_Buying_Deal::POST_TYPE,
 					'post_title' => gb__('Donation'),
 					'post_content' => 'This is a deal that will have all donations attributed to it. Keep it private or publish it after modifying the content.'
 				) );
-			add_option( self::DONATION_ITEM_ID, $item_id );
+			update_option( self::DONATION_ITEM_ID, $item_id );
 			$deal = Group_Buying_Deal::get_instance( $item_id );
 			$deal->set_expiration_date( Group_Buying_Deal::NO_EXPIRATION_DATE );
+			$deal->set_max_purchases( Group_Buying_Deal::NO_MAXIMUM );
+			$deal->set_max_purchases_per_user( Group_Buying_Deal::NO_MAXIMUM );
+			$donation_deal = $item_id;
 		}
+		return $donation_deal;
 	}
 
 	public function maybe_create_donation_attributes_on_save( $post_id, $post ) {
@@ -298,7 +302,9 @@ class GB_Charities extends Group_Buying_Controller {
 	public function get_donation_id() {
 		$deal_id = get_option( self::DONATION_ITEM_ID, FALSE );
 		if ( get_post_type( $deal_id ) !== Group_Buying_Deal::POST_TYPE ) {
-			return FALSE;
+			// delete the option so that a new donation deal can be created and set.
+			delete_option( self::DONATION_ITEM_ID );
+			$deal_id = self::maybe_create_donation_deal();
 		}
 		return $deal_id;
 	}
