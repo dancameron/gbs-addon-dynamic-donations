@@ -5,11 +5,16 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	const CART_META_DONATION = 'gb_donation_total';
 	const PURCHASE_META_KEY = 'gb_donation_total';
 	const ITEM_DATA_KEY = 'gb_donation_total';
+	const DEFAULT_PERCENTAGE = 5;
 
 	public static function init() {
+
+		// force the donation item in the cart
+		add_action( 'gb_processing_cart', array( get_class(), 'force_donation_to_cart' ), 10, 1 );
+
 		// Add item to the cart based on amount
-		add_action( 'gb_processing_cart', array( get_class(), 'add_donation_to_cart' ), 10, 1 );
-		add_action( 'gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'add_donation_to_cart_on_checkout' ), 0, 1 );
+		add_action( 'gb_processing_cart', array( get_class(), 'maybe_add_donation_to_cart' ), 10, 1 );
+		add_action( 'gb_checkout_action_'.Group_Buying_Checkouts::PAYMENT_PAGE, array( get_class(), 'maybe_add_donation_to_cart_on_checkout' ), 0, 1 );
 
 		// Filter the price based on the purchase 
 		add_filter( 'gb_get_deal_price_meta', array( get_class(), 'filter_deal_price' ), 10, 4 );
@@ -20,32 +25,78 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 		// modify the line items
 		add_filter( 'gb_cart_items', array( get_class(), 'line_items' ), 10, 2 );
+
+		// Filter items to capture
+		add_filter( 'gb_pp_items_to_capture', array( get_class(), 'maybe_remove_donation_item' ), 10, 3 );
+
+		// Remove the charity selection pane
+		self::deregister_payment_pane();
+		self::deregister_review_pane();
 		
 
 	}
 
-	public static function add_donation_to_cart( Group_Buying_Cart $cart ) {
-		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
-			$data = array(
-					Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $_POST['gb_charity'] ),
-					self::ITEM_DATA_KEY => $_POST[self::CART_OPTION_NAME]
-				);
-			$cart->remove_item( GB_Charities::get_donation_id() );
-			$cart->add_item( GB_Charities::get_donation_id(), 1, $data );
-			
+	public static function force_donation_to_cart( Group_Buying_Cart $cart ) {
+		self::remove_donation_item_to_cart( $cart );
+		
+		if ( $cart->get_subtotal() < 0.01 ) {
+			self::remove_donation_item_to_cart( $cart );
+			return;
+		}
+
+		// check to make sure a post of a new charity donation isn't being sent (prevent dups)
+		if ( !isset( $_POST['gb_charity'] ) && !isset( $_POST[self::CART_OPTION_NAME] ) ) {
+			// make sure the cart doesn't already have a discount and there's a default discount percentage set.
+			if ( !self::cart_has_donation( $cart ) && self::DEFAULT_PERCENTAGE ) {
+				// only do this if there's a single charity for the site.
+				$charities = GB_Charity::get_charities();
+				if ( count( $charities ) == 1 ) {
+					self::remove_donation_item_to_cart( $cart ); // remove item before the total is calculated
+					// calculate the donation
+					$default_donation = ( self::DEFAULT_PERCENTAGE ) ? $cart->get_subtotal()*(self::DEFAULT_PERCENTAGE*0.01) : 0 ;
+					// if a free cart don't add a donation
+					if ( $default_donation ) {
+						self::add_donation_item_to_cart( $charities[0], $default_donation, $cart );
+					}
+				}
+			}
 		}
 	}
 
-	public static function add_donation_to_cart_on_checkout( Group_Buying_Checkouts $checkout ) {
-		$cart = Group_Buying_Cart::get_instance();
-		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) ) {
-			$data = array(
-					Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $_POST['gb_charity'] ),
-					self::ITEM_DATA_KEY => $_POST[self::CART_OPTION_NAME]
-				);
-			$cart->remove_item( GB_Charities::get_donation_id() );
-			$cart->add_item( GB_Charities::get_donation_id(), 1, $data );
+	public static function maybe_add_donation_to_cart( Group_Buying_Cart $cart ) {
+		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) && $_POST['gb_charity'] != '' && $_POST[self::CART_OPTION_NAME] != '' ) {
+
+			self::add_donation_item_to_cart( (int) $_POST['gb_charity'], (float) $_POST[self::CART_OPTION_NAME], $cart );
 		}
+	}
+
+	public static function maybe_add_donation_to_cart_on_checkout( Group_Buying_Checkouts $checkout ) {
+		if ( isset( $_POST['gb_charity'] ) && isset( $_POST[self::CART_OPTION_NAME] ) && $_POST['gb_charity'] != '' && $_POST[self::CART_OPTION_NAME] != '' ) {
+			self::add_donation_item_to_cart( (int) $_POST['gb_charity'], (float) $_POST[self::CART_OPTION_NAME] );
+		}
+	}
+
+	public function add_donation_item_to_cart( $charity_id, $donation_total, $cart = 0 ) {
+		if ( !$cart ) {
+			$cart = Group_Buying_Cart::get_instance();
+		}
+		$item_id = GB_Charities::get_donation_id();
+		$data = array(
+				Group_Buying_Attribute::ATTRIBUTE_DATA_KEY => GB_Charities::get_donation_attribute_by_charity_id( $charity_id ),
+				self::ITEM_DATA_KEY => $donation_total
+			);
+		self::remove_donation_item_to_cart( $cart, $item_id );
+		$cart->add_item( $item_id, 1, $data );
+	}
+
+	public function remove_donation_item_to_cart( $cart = 0, $item_id = 0 ) {
+		if ( !$cart ) {
+			$cart = Group_Buying_Cart::get_instance();
+		}
+		if ( !$item_id ) {
+			$item_id = GB_Charities::get_donation_id();
+		}
+		$cart->remove_item( $item_id );
 	}
 
 	public static function filter_deal_title( $title, $data ) {
@@ -54,7 +105,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		}
 		$attribute_id = $data[Group_Buying_Attribute::ATTRIBUTE_DATA_KEY];
 		$charity_id = GB_Charities::get_charity_id_by_attribute_id( $attribute_id );
-		$title = 'Donation to ' . get_the_title( $charity_id ) . ' (' . gb_get_excerpt_char_truncation( 50, $charity_id  ) . ')';
+		$title = 'Donation to ' . get_the_title( $charity_id ) . ' (' . gb_get_excerpt_char_truncation( 100, $charity_id  ) . ')';
 
 		return $title;
 	}
@@ -71,7 +122,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 
 	public static function filter_deal_price( $price, Group_Buying_Deal $deal, $qty, $data ) {
 		if ( isset( $data[self::ITEM_DATA_KEY] ) ) {
-			return (int)$data[self::ITEM_DATA_KEY]; // isn't an attribute
+			return $data[self::ITEM_DATA_KEY]; // isn't an attribute
 		}
 		return $price;
 	}
@@ -84,8 +135,10 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 	 */
 	public static function line_items( $items, Group_Buying_Cart $cart ) {
 		$donation_id = GB_Charities::get_donation_id();
-
-
+		$charities = GB_Charity::get_charities();
+		if ( empty( $charities ) ) {
+			return $items;
+		}
 		if ( !self::cart_has_donation( $cart ) && !$static ) {
 			$charities = GB_Charity::get_charities();
 			$select_list = '<br/><select name="gb_charity" id="gb_charity">';
@@ -94,12 +147,11 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 				$select_list .= '<option value="'.$charity_id.'">'.get_the_title( $charity_id ).'</option>';
 			}
 			$select_list .= '</select>';
-
 			$row = array(
-				'remove' => sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
+				'remove' => '',
 				'name' => gb__('Donate to:') . $select_list,
-				'quantity' => 1,
-				'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" placeholder="0"/>'
+				//'quantity' => $static ? 1 : gb_get_quantity_select( 1, 1, 1, 'items['.$key.'][qty]' ),
+				'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" placeholder="0" style="width:4em;"/>'
 			);
 			$items[] = $row;
 		}
@@ -109,20 +161,30 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 			foreach ( $cart->get_items() as $key => $item ) {
 
 				if ( $donation_id === $item['deal_id'] ) {
+					$deal = Group_Buying_Deal::get_instance( $item['deal_id'] );
 					$price = $deal->get_price( NULL, $item['data'] );
+					$price_input = '<span id="'.self::CART_OPTION_NAME.'">'.gb_get_formatted_money($price).' <small class="link">edit</small></span><input type="text" id="input_'.self::CART_OPTION_NAME.'" name="'.self::CART_OPTION_NAME.'" class="input_mini cloak" value="'.$price.'" placeholder="0"/>';
+					$price_input .= '<style type="text/css">#input_'.self::CART_OPTION_NAME.' { display: none;}</style>';
+					$price_input .= '<script type="text/javascript">
+							jQuery(document).ready( function($) {
+								$("span#'.self::CART_OPTION_NAME.'").live( "click", function() {
+									$(this).remove();
+									$("#input_'.self::CART_OPTION_NAME.'").fadeIn("fast");
+								});
+							});
+						</script>';
+
 					$row = array(
-						'remove' => sprintf( '<input type="checkbox" value="remove" name="items[%d][remove]" />', $key ),
+						'remove' => sprintf( '', $key ),
 						'name' => $deal->get_title( $item['data'] ),
-						'quantity' => 1,
-						'price' => '<input type="text" name="'.self::CART_OPTION_NAME.'" class="input_mini" value="'.$price.'" placeholder="0"/>'
+						// 'quantity' => $static ? $item['quantity']: gb_get_quantity_select( '1', 1, 1, 'items['.$key.'][qty]' ),
+						'price' => $price_input
 					);
 					if ( $static ) {
 						unset( $row['remove'] );
 						$row['price'] = gb_get_formatted_money( $price );
 					} else {
 						$row['name'] .= sprintf( '<input type="hidden" value="%s" name="gb_charity" />', self::get_charity_id_from_data( $item['data'] ) );
-						$row['name'] .= sprintf( '<input type="hidden" value="%s" name="items[%d][id]" />', $item['deal_id'], $key );
-						$row['name'] .= sprintf( '<input type="hidden" value="%s" name="items[%d][data]" />', $item['data']?esc_attr( serialize( $item['data'] ) ):'', $key );
 					}
 					$items[] = $row;
 				}
@@ -161,10 +223,38 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		$donation_id = GB_Charities::get_donation_id();
 		foreach ( $cart->get_items() as $key => $item ) {
 			if ( $donation_id === $item['deal_id'] ) {
-				return TRUE;
+				return $item['data'][self::ITEM_DATA_KEY];
 			}
 		}
 		return FALSE;
+	}
+
+	/**
+	 * Don't allow for the donation item to be captured before any other item
+	 * @param  array $items_to_capture 
+	 * @param  object $processor        
+	 * @param  object $payment          
+	 * @return array                   
+	 */
+	public function maybe_remove_donation_item( $items_to_capture, $processor, $payment  ) {
+		$has_donation = FALSE;
+		$donation_item_id = GB_Charities::get_donation_id();
+		// Check if there's a donation item in the array of items to be captured.
+		foreach ( $items_to_capture as $item_id => $price ) {
+			if ( $item_id == $donation_item_id ) {
+				$has_donation = TRUE;
+			}
+		}
+		if ( $has_donation ) { // array has the donation item included.
+			$payment_data = $payment->get_data();
+			// Check to make sure the donation is the last uncaptured item.
+			if ( isset( $payment_data['uncaptured_deals'] ) && ( count( $payment_data['uncaptured_deals'] ) > 1 ) ) {
+				// remove the donation item from being captured since there are other items included.
+				unset( $items_to_capture[ $donation_item_id ] );
+			}
+				
+		}
+		return $items_to_capture;
 	}
 
 	private static function deregister_payment_pane() {

@@ -21,6 +21,10 @@ class GBS_Dynamic_Charities_Addon {
 		require_once 'GBS_Charity_Reports.php';
 		GBS_Charity_Reports::init();
 
+		// Vouchers
+		require_once 'GBS_Charity_Vouchers.php';
+		GBS_Charity_Vouchers::init();
+
 		// Template tags
 		require_once GB_DYN_CHARITY_PATH . '/library/template-tags.php';
 	}
