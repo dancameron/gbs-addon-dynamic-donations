@@ -139,7 +139,7 @@ class GBS_Charity_Cart extends Group_Buying_Controller {
 		if ( empty( $charities ) ) {
 			return $items;
 		}
-		if ( !self::cart_has_donation( $cart ) && !$static ) {
+		if ( !self::cart_has_donation( $cart ) ) {
 			$charities = GB_Charity::get_charities();
 			$select_list = '<br/><select name="gb_charity" id="gb_charity">';
 			$select_list .= '<option></option>';
